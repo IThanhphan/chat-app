@@ -1,0 +1,159 @@
+import 'package:chat_app/components/input_text_field.dart';
+import 'package:chat_app/pages/settingChildrenPage/password_auth_page.dart';
+import 'package:chat_app/pages/register_page.dart';
+import 'package:chat_app/services/auth/auth_service.dart';
+import 'package:chat_app/theme_manager.dart';
+import 'package:flutter/material.dart';
+
+class LoginPage extends StatelessWidget {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _pwController = TextEditingController();
+
+  LoginPage({super.key});
+
+  void login(BuildContext context) async {
+    final authService = AuthService();
+
+    try {
+      await authService.signInWithEmailPassword(
+        _emailController.text,
+        _pwController.text,
+      );
+    } catch (e) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(title: Text(e.toString())),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: isDarkMode,
+      builder: (context, dark, _) {
+        return Scaffold(
+          backgroundColor: dark ? Colors.black : Colors.white,
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF00A8FF),
+            title: const Text(
+              'MESSAGE',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            centerTitle: true,
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Image.asset('assets/logo.png'), // Thay bằng logo của bạn
+            ),
+          ),
+          body: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Column(
+                children: [
+                  const CircleAvatar(
+                    radius: 80,
+                    backgroundImage: AssetImage('assets/logo.png'),
+                    backgroundColor: Colors.transparent,
+                  ),
+                  const SizedBox(height: 30),
+                  // Nhập số điện thoại
+                  InputTextField(
+                    text: 'Nhập email',
+                    obscurePassword: false,
+                    dark: dark,
+                    inputType: TextInputType.emailAddress,
+                    controller: _emailController,
+                  ),
+                  const SizedBox(height: 16),
+                  // Nhập mật khẩu
+                  InputTextField(
+                    text: 'Nhập mật khẩu',
+                    obscurePassword: true,
+                    dark: dark,
+                    inputType: TextInputType.multiline,
+                    controller: _pwController,
+                  ),
+                  const SizedBox(height: 30),
+                  // Nút đăng nhập
+                  ElevatedButton(
+                    onPressed: () => login(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2980B9),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'Đăng nhập',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Nút tạo tài khoản
+                  OutlinedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => RegisterPage()),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.transparent),
+                      backgroundColor:
+                          dark ? Colors.grey[800] : Colors.grey[200],
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: Text(
+                      'Tạo tài khoản mới',
+                      style: TextStyle(
+                        color: dark ? Colors.white : Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Quên mật khẩu
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PasswordAuthPage(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'Quên mật khẩu ?',
+                      style: TextStyle(
+                        color:
+                            dark ? Colors.blue[300] : const Color(0xFF2980B9),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
