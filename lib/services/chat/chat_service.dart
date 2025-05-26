@@ -81,4 +81,28 @@ class ChatService {
         .doc(messageID)
         .delete();
   }
+
+  Stream<Map<String, dynamic>?> getLastMessage(
+    String currentUserId,
+    String otherUserId,
+  ) {
+    // construct chatRoomID
+    List<String> ids = [currentUserId, otherUserId];
+    ids.sort();
+    String chatRoomID = ids.join('_');
+    return _firestore
+        .collection('chat_rooms')
+        .doc(chatRoomID)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+          if (snapshot.docs.isNotEmpty) {
+            return snapshot.docs.first.data();
+          } else {
+            return null;
+          }
+        });
+  }
 }

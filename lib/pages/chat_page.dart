@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:chat_app/components/custom_avatar.dart';
+import 'package:chat_app/helper/utils/convert_image_to_base64.dart';
 import 'package:chat_app/pages/receiver_info_page.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:chat_app/components/emoji_picker_sheet.dart';
@@ -8,15 +10,18 @@ import 'package:chat_app/services/chat/chat_service.dart';
 import 'package:chat_app/theme_manager.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class ChatPage extends StatefulWidget {
   final String receiverName;
   final String receiverID;
+  final String receiverAvatar;
 
   const ChatPage({
     super.key,
     required this.receiverName,
     required this.receiverID,
+    required this.receiverAvatar,
   });
 
   @override
@@ -30,6 +35,30 @@ class _ChatPageState extends State<ChatPage> {
   final ChatService _chatService = ChatService();
   final AuthService _authService = AuthService();
 
+  int _prevMessageCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _scrollToBottom();
+    });
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(Duration(milliseconds: 100), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    });
+  }
+
   void _sendMessage() async {
     if (_messageController.text.isNotEmpty) {
       await _chatService.sendMessage(
@@ -39,13 +68,7 @@ class _ChatPageState extends State<ChatPage> {
       );
       _messageController.clear();
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      });
+      _scrollToBottom();
     }
   }
 
@@ -55,14 +78,15 @@ class _ChatPageState extends State<ChatPage> {
 
     if (pickedFile != null) {
       File imageFile = File(pickedFile.path);
-      final bytes = await imageFile.readAsBytes();
-      final base64Image = base64Encode(bytes);
+      final base64Image = await convertImageToBase64(imageFile);
 
-      await _chatService.sendMessage(
-        widget.receiverID,
-        base64Image,
-        isImage: true,
-      );
+      if (base64Image != null) {
+        await _chatService.sendMessage(
+          widget.receiverID,
+          base64Image,
+          isImage: true,
+        );
+      }
     }
   }
 
@@ -79,8 +103,8 @@ class _ChatPageState extends State<ChatPage> {
               children: [
                 Stack(
                   children: [
-                    const CircleAvatar(
-                      backgroundImage: AssetImage('assets/avatar.png'),
+                    CustomAvatar(
+                      imageBase64: widget.receiverAvatar,
                       radius: 16,
                     ),
                     Positioned(
@@ -132,8 +156,10 @@ class _ChatPageState extends State<ChatPage> {
                     context,
                     MaterialPageRoute(
                       builder:
-                          (context) =>
-                              ReceiverInfoPage(name: widget.receiverName),
+                          (context) => ReceiverInfoPage(
+                            name: widget.receiverName,
+                            imageBase64: widget.receiverAvatar,
+                          ),
                     ),
                   );
                   // xử lý mở info
@@ -157,19 +183,25 @@ class _ChatPageState extends State<ChatPage> {
     return StreamBuilder(
       stream: _chatService.getMessages(widget.receiverID, senderID),
       builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Text('Error');
+        if (snapshot.hasError) return const Text('Error');
+        if (snapshot.connectionState == ConnectionState.waiting)
+          return const Text('Loading...');
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text('Không có tin nhắn'));
         }
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Text('Loading...');
+        final messages = snapshot.data!.docs;
+
+        // So sánh số lượng tin nhắn để scroll
+        if (messages.length != _prevMessageCount) {
+          _prevMessageCount = messages.length;
+          _scrollToBottom();
         }
+
         return ListView(
           controller: _scrollController,
-          children:
-              snapshot.data!.docs
-                  .map((doc) => _messageItem(doc, dark))
-                  .toList(),
+          children: messages.map((doc) => _messageItem(doc, dark)).toList(),
         );
       },
     );
@@ -180,46 +212,26 @@ class _ChatPageState extends State<ChatPage> {
     bool isCurrentUser = data['senderID'] == _authService.getCurrentUser()!.uid;
     String messageID = doc.id;
 
+    final timestamp = data['timestamp'] as Timestamp;
+    final timeString = DateFormat(
+      'dd/MM/yyyy HH:mm',
+    ).format(timestamp.toDate());
+
     if (isCurrentUser) {
       return Align(
         alignment: Alignment.centerRight,
-        child: GestureDetector(
-          onLongPress: () {
-            _showMessageOptions(context, messageID);
-          },
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFB0DAFF),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child:
-                data['isImage'] == true
-                    ? Image.memory(base64Decode(data['message']), width: 200)
-                    : Text(data['message']),
-          ),
-        ),
-      );
-    } else {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: const CircleAvatar(
-                backgroundImage: AssetImage('assets/avatar.png'),
-                radius: 14,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Flexible(
+            GestureDetector(
+              onLongPress: () {
+                _showMessageOptions(context, messageID);
+              },
               child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: dark ? Colors.grey[800] : Colors.grey[300],
+                  color: const Color(0xFFB0DAFF),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child:
@@ -230,6 +242,56 @@ class _ChatPageState extends State<ChatPage> {
                         )
                         : Text(data['message']),
               ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 10, bottom: 4),
+              child: Text(
+                timeString,
+                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: CustomAvatar(
+                imageBase64: widget.receiverAvatar,
+                radius: 14,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: dark ? Colors.grey[800] : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child:
+                      data['isImage'] == true
+                          ? Image.memory(
+                            base64Decode(data['message']),
+                            width: 200,
+                          )
+                          : Text(data['message']),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, top: 2),
+                  child: Text(
+                    timeString,
+                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

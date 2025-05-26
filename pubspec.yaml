@@ -39,6 +39,9 @@ dependencies:
   firebase_auth: ^5.5.4
   cloud_firestore: ^5.6.8
   image_picker: ^1.1.2
+  another_flushbar: ^1.12.30
+  intl: ^0.20.2
+  timeago: ^3.7.1
 
 dev_dependencies:
   flutter_test:

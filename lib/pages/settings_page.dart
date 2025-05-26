@@ -1,30 +1,52 @@
+import 'dart:io';
+import 'package:another_flushbar/flushbar.dart';
+import 'package:chat_app/components/custom_avatar.dart';
+import 'package:chat_app/helper/utils/convert_image_to_base64.dart';
+import 'package:chat_app/helper/utils/load_asset_image_as_base64.dart';
 import 'package:chat_app/pages/settingChildrenPage/password_auth_page.dart';
 import 'package:chat_app/pages/settingChildrenPage/profile_update_page.dart';
 import 'package:chat_app/services/auth/auth_service.dart';
 import 'package:chat_app/theme_manager.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class SettingsPage extends StatelessWidget {
   final VoidCallback onBackToChat;
-  final AuthService _auth = AuthService();
 
   SettingsPage({super.key, required this.onBackToChat});
+
+  final AuthService _auth = AuthService();
 
   void logout() {
     _auth.signOut();
   }
 
-  Future<String?> getUsername() async {
-    final user = _auth.getCurrentUser();
-    if (user == null) return null;
+  void showFlushbar(BuildContext context) {
+    Flushbar(
+      message: 'Đã cập nhật avatar!',
+      duration: const Duration(seconds: 2),
+      flushbarPosition: FlushbarPosition.TOP,
+      backgroundColor: Colors.green.shade600,
+      margin: const EdgeInsets.all(8),
+      borderRadius: BorderRadius.circular(8),
+      icon: const Icon(Icons.check_circle, color: Colors.white),
+    ).show(context);
+  }
 
-    final doc =
-        await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(user.uid)
-            .get();
-    return doc.data()?['username'];
+  Future<void> _changeAvatar(BuildContext context) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      File imageFile = File(pickedFile.path);
+      String? base64Image = await convertImageToBase64(imageFile);
+      if (base64Image != null) {
+        await _auth.updateAvatar(base64Image);
+        Navigator.pop(context);
+
+        showFlushbar(context);
+      }
+    }
   }
 
   @override
@@ -48,26 +70,37 @@ class SettingsPage extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              GestureDetector(
-                onTap: () {
-                  _showAvatarOptions(context);
+              FutureBuilder<Map<String, dynamic>?>(
+                future: _auth.getUserInfo(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircleAvatar(radius: 50); // loading avatar
+                  } else {
+                    final avatarBase64 = snapshot.data?['avatar'];
+                    return GestureDetector(
+                      onTap: () => _showAvatarOptions(context),
+                      child: CustomAvatar(
+                        imageBase64: avatarBase64,
+                        radius: 50,
+                      ),
+                    );
+                  }
                 },
-                child: const CircleAvatar(
-                  radius: 50,
-                  backgroundImage: AssetImage('assets/avatar.png'),
-                ),
               ),
+
               const SizedBox(height: 10),
-              FutureBuilder<String?>(
-                future: getUsername(),
+              FutureBuilder<Map<String, dynamic>?>(
+                future: _auth.getUserInfo(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const CircularProgressIndicator(); // Hoặc SizedBox.shrink() nếu bạn không muốn loading
                   } else if (snapshot.hasError) {
                     return const Text('Lỗi khi tải tên người dùng');
                   } else {
+                    final userData = snapshot.data;
+                    final username = userData?['username'] ?? 'Không rõ';
                     return Text(
-                      snapshot.data ?? 'Không rõ',
+                      username ?? 'Không rõ',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -90,6 +123,7 @@ class SettingsPage extends StatelessWidget {
                   );
                 },
               ),
+
               buildDarkModeToggle(),
 
               buildMenuItem(
@@ -184,9 +218,26 @@ class SettingsPage extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.image),
                 title: const Text('Đổi avatar'),
-                onTap: () {
+                onTap: () => _changeAvatar(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.remember_me_outlined),
+                title: const Text('Trở lại avatar mặc định'),
+                onTap: () async {
+                  final userInfo = await _auth.getUserInfo();
+                  String base64Image = '';
+                  if (userInfo?['gender']) {
+                    base64Image = await loadAssetImageAsBase64(
+                      'assets/male_avatar.jpg',
+                    );
+                  } else {
+                    base64Image = await loadAssetImageAsBase64(
+                      'assets/female_avatar.jpg',
+                    );
+                  }
+                  await _auth.updateAvatar(base64Image);
                   Navigator.pop(context);
-                  // TODO: Xử lý chọn avatar mới hoặc mở màn hình chọn avatar
+                  showFlushbar(context);
                 },
               ),
               ListTile(

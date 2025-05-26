@@ -1,10 +1,16 @@
+import 'package:chat_app/components/custom_avatar.dart';
 import 'package:chat_app/theme_manager.dart';
 import 'package:flutter/material.dart';
 
 class ReceiverInfoPage extends StatelessWidget {
   final String name;
+  final String imageBase64;
 
-  const ReceiverInfoPage({super.key, required this.name});
+  const ReceiverInfoPage({
+    super.key,
+    required this.name,
+    required this.imageBase64,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,10 +33,7 @@ class ReceiverInfoPage extends StatelessWidget {
           children: [
             Stack(
               children: [
-                const CircleAvatar(
-                  backgroundImage: AssetImage('assets/avatar.png'),
-                  radius: 50,
-                ),
+                CustomAvatar(imageBase64: imageBase64, radius: 50),
                 Positioned(
                   bottom: 5,
                   right: 10,

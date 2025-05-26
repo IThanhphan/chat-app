@@ -1,3 +1,4 @@
+import 'package:chat_app/helper/utils/load_asset_image_as_base64.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -7,6 +8,18 @@ class AuthService {
 
   User? getCurrentUser() {
     return _auth.currentUser;
+  }
+
+  Future<Map<String, dynamic>?> getUserInfo() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(user.uid)
+            .get();
+    return doc.data();
   }
 
   Future<UserCredential> signInWithEmailPassword(String email, password) async {
@@ -33,10 +46,18 @@ class AuthService {
       password: password,
     );
 
+    String base64Image = '';
+    if (gender) {
+      base64Image = await loadAssetImageAsBase64('assets/male_avatar.jpg');
+    } else {
+      base64Image = await loadAssetImageAsBase64('assets/female_avatar.jpg');
+    }
+
     // Lưu thông tin bổ sung vào Firestore
     await _firestore.collection('Users').doc(userCredential.user!.uid).set({
       'uid': userCredential.user!.uid,
       'username': username,
+      'avatar': base64Image,
       'dob': dob,
       'gender': gender,
       'email': email,
@@ -46,5 +67,14 @@ class AuthService {
 
   Future<void> signOut() async {
     return await _auth.signOut();
+  }
+
+  Future<void> updateAvatar(String base64Avatar) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('Users').doc(user.uid).update(
+        {'avatar': base64Avatar},
+      );
+    }
   }
 }
