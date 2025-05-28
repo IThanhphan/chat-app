@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'package:another_flushbar/flushbar.dart';
 import 'package:chat_app/components/custom_avatar.dart';
 import 'package:chat_app/helper/utils/convert_image_to_base64.dart';
 import 'package:chat_app/helper/utils/load_asset_image_as_base64.dart';
+import 'package:chat_app/helper/utils/show_custom_flushbar.dart';
 import 'package:chat_app/pages/settingChildrenPage/password_auth_page.dart';
 import 'package:chat_app/pages/settingChildrenPage/profile_update_page.dart';
 import 'package:chat_app/services/auth/auth_service.dart';
@@ -17,20 +17,14 @@ class SettingsPage extends StatelessWidget {
 
   final AuthService _auth = AuthService();
 
-  void logout() {
+  void logout(BuildContext context) {
     _auth.signOut();
-  }
-
-  void showFlushbar(BuildContext context) {
-    Flushbar(
-      message: 'Đã cập nhật avatar!',
-      duration: const Duration(seconds: 2),
-      flushbarPosition: FlushbarPosition.TOP,
-      backgroundColor: Colors.green.shade600,
-      margin: const EdgeInsets.all(8),
-      borderRadius: BorderRadius.circular(8),
-      icon: const Icon(Icons.check_circle, color: Colors.white),
-    ).show(context);
+    showCustomFlushbar(
+      context: context,
+      text: 'Bạn đã đăng xuất!',
+      color: Colors.green.shade600,
+      icon: Icons.check_circle
+    );
   }
 
   Future<void> _changeAvatar(BuildContext context) async {
@@ -44,7 +38,12 @@ class SettingsPage extends StatelessWidget {
         await _auth.updateAvatar(base64Image);
         Navigator.pop(context);
 
-        showFlushbar(context);
+        showCustomFlushbar(
+          context: context,
+          text: 'Đã cập nhật avatar!',
+          color: Colors.green.shade600,
+          icon: Icons.check_circle
+        );
       }
     }
   }
@@ -139,7 +138,7 @@ class SettingsPage extends StatelessWidget {
 
               const SizedBox(height: 190),
               ElevatedButton.icon(
-                onPressed: logout,
+                onPressed: () => logout(context),
                 icon: const Icon(Icons.logout),
                 label: const Text('Đăng xuất'),
                 style: ElevatedButton.styleFrom(
@@ -237,7 +236,12 @@ class SettingsPage extends StatelessWidget {
                   }
                   await _auth.updateAvatar(base64Image);
                   Navigator.pop(context);
-                  showFlushbar(context);
+                  showCustomFlushbar(
+                    context: context,
+                    text: 'Đã cập nhật avatar!',
+                    color: Colors.green.shade600,
+                    icon: Icons.check_circle
+                  );
                 },
               ),
               ListTile(

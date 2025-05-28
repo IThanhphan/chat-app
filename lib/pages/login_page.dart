@@ -1,4 +1,5 @@
 import 'package:chat_app/components/input_text_field.dart';
+import 'package:chat_app/helper/utils/show_custom_flushbar.dart';
 import 'package:chat_app/pages/settingChildrenPage/password_auth_page.dart';
 import 'package:chat_app/pages/register_page.dart';
 import 'package:chat_app/services/auth/auth_service.dart';
@@ -14,15 +15,29 @@ class LoginPage extends StatelessWidget {
   void login(BuildContext context) async {
     final authService = AuthService();
 
+    // showDialog(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder: (_) => const Center(child: CircularProgressIndicator()),
+    // );
+
     try {
       await authService.signInWithEmailPassword(
         _emailController.text,
         _pwController.text,
       );
-    } catch (e) {
-      showDialog(
+      showCustomFlushbar(
         context: context,
-        builder: (context) => AlertDialog(title: Text(e.toString())),
+        text: 'Bạn đã đăng nhập thành công!',
+        color: Colors.green.shade600,
+        icon: Icons.check_circle,
+      );
+    } catch (e) {
+      showCustomFlushbar(
+        context: context,
+        text: 'Sai mật khẩu hoặc email',
+        color: Colors.red.shade600,
+        icon: Icons.error,
       );
     }
   }

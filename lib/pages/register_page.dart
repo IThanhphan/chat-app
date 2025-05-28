@@ -1,5 +1,6 @@
 import 'package:chat_app/components/input_dropdown_field.dart';
 import 'package:chat_app/components/input_text_field.dart';
+import 'package:chat_app/helper/utils/show_custom_flushbar.dart';
 import 'package:chat_app/services/auth/auth_gate.dart';
 import 'package:chat_app/services/auth/auth_service.dart';
 import 'package:chat_app/theme_manager.dart';
@@ -38,21 +39,31 @@ class _RegisterPageState extends State<RegisterPage> {
           gender: _selectedGender,
         );
 
+        showCustomFlushbar(
+          context: context,
+          text: 'Bạn đã đăng ký thành công!',
+          color: Colors.green.shade600,
+          icon: Icons.check_circle,
+        );
+
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const AuthGate()),
         );
       } catch (e) {
-        showDialog(
+        showCustomFlushbar(
           context: context,
-          builder: (context) => AlertDialog(title: Text(e.toString())),
+          text: 'Bạn đã đăng ký thất bại!',
+          color: Colors.red.shade600,
+          icon: Icons.error,
         );
       }
     } else {
-      showDialog(
+      showCustomFlushbar(
         context: context,
-        builder:
-            (context) => AlertDialog(title: Text("Passwords don't match!")),
+        text: 'Mật khẩu không khớp',
+        color: Colors.red.shade600,
+        icon: Icons.error,
       );
     }
   }
