@@ -1,6 +1,7 @@
 import 'package:chat_app/components/input_dropdown_field.dart';
 import 'package:chat_app/components/input_text_field.dart';
 import 'package:chat_app/helper/utils/show_custom_flushbar.dart';
+import 'package:chat_app/notifications/fcm_token_repository.dart';
 import 'package:chat_app/services/auth/auth_gate.dart';
 import 'package:chat_app/services/auth/auth_service.dart';
 import 'package:chat_app/theme_manager.dart';
@@ -15,18 +16,16 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _accountController = TextEditingController();
-
   final TextEditingController _dobController = TextEditingController();
-
   final TextEditingController _emailController1 = TextEditingController();
-
   final TextEditingController _pwController = TextEditingController();
-
   final TextEditingController _confirmPwController = TextEditingController();
 
   bool _selectedGender = true;
+  bool isLoading = false;
 
   void register(BuildContext context) async {
+    setState(() => isLoading = true);
     final auth = AuthService();
 
     if (_pwController.text == _confirmPwController.text) {
@@ -38,6 +37,7 @@ class _RegisterPageState extends State<RegisterPage> {
           dob: _dobController.text,
           gender: _selectedGender,
         );
+        FCMTokenRepository.refreshAndSaveToken();
 
         showCustomFlushbar(
           context: context,
@@ -57,6 +57,8 @@ class _RegisterPageState extends State<RegisterPage> {
           color: Colors.red.shade600,
           icon: Icons.error,
         );
+      } finally {
+        setState(() => isLoading = false);
       }
     } else {
       showCustomFlushbar(
@@ -76,7 +78,7 @@ class _RegisterPageState extends State<RegisterPage> {
         return Scaffold(
           backgroundColor: dark ? Colors.black : Colors.white,
           appBar: AppBar(
-            backgroundColor: const Color(0xFF00A8FF),
+            backgroundColor: Colors.blue,
             title: const Text(
               'MESSAGE',
               style: TextStyle(
@@ -163,7 +165,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 30),
 
                   ElevatedButton(
-                    onPressed: () => register(context),
+                    onPressed: isLoading ? null : () => register(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2980B9),
                       padding: const EdgeInsets.symmetric(
@@ -174,13 +176,23 @@ class _RegisterPageState extends State<RegisterPage> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: const Text(
-                      'Xác nhận',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child:
+                        isLoading
+                            ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : const Text(
+                              'Xác nhận',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                   ),
                 ],
               ),

@@ -1,31 +1,36 @@
 import 'package:chat_app/components/input_text_field.dart';
 import 'package:chat_app/helper/utils/show_custom_flushbar.dart';
+import 'package:chat_app/notifications/fcm_token_repository.dart';
 import 'package:chat_app/pages/settingChildrenPage/password_auth_page.dart';
 import 'package:chat_app/pages/register_page.dart';
 import 'package:chat_app/services/auth/auth_service.dart';
 import 'package:chat_app/theme_manager.dart';
 import 'package:flutter/material.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _pwController = TextEditingController();
 
-  LoginPage({super.key});
+  bool isLoading = false;
 
   void login(BuildContext context) async {
+    setState(() => isLoading = true);
     final authService = AuthService();
-
-    // showDialog(
-    //   context: context,
-    //   barrierDismissible: false,
-    //   builder: (_) => const Center(child: CircularProgressIndicator()),
-    // );
 
     try {
       await authService.signInWithEmailPassword(
         _emailController.text,
         _pwController.text,
       );
+      FCMTokenRepository.refreshAndSaveToken();
+
       showCustomFlushbar(
         context: context,
         text: 'Bạn đã đăng nhập thành công!',
@@ -39,6 +44,8 @@ class LoginPage extends StatelessWidget {
         color: Colors.red.shade600,
         icon: Icons.error,
       );
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
@@ -50,7 +57,7 @@ class LoginPage extends StatelessWidget {
         return Scaffold(
           backgroundColor: dark ? Colors.black : Colors.white,
           appBar: AppBar(
-            backgroundColor: const Color(0xFF00A8FF),
+            backgroundColor: Colors.blue,
             title: const Text(
               'MESSAGE',
               style: TextStyle(
@@ -61,7 +68,7 @@ class LoginPage extends StatelessWidget {
             centerTitle: true,
             leading: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Image.asset('assets/logo.png'), // Thay bằng logo của bạn
+              child: Image.asset('assets/logo.png'),
             ),
           ),
           body: Center(
@@ -95,7 +102,7 @@ class LoginPage extends StatelessWidget {
                   const SizedBox(height: 30),
                   // Nút đăng nhập
                   ElevatedButton(
-                    onPressed: () => login(context),
+                    onPressed: isLoading ? null : () => login(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2980B9),
                       padding: const EdgeInsets.symmetric(
@@ -106,13 +113,23 @@ class LoginPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: const Text(
-                      'Đăng nhập',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child:
+                        isLoading
+                            ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : const Text(
+                              'Đăng nhập',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                   ),
                   const SizedBox(height: 16),
                   // Nút tạo tài khoản

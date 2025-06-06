@@ -1,10 +1,12 @@
 import 'package:chat_app/components/input_text_field.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../theme_manager.dart';
 
 class ResetPwPage extends StatelessWidget {
   final TextEditingController _pwController = TextEditingController();
   final TextEditingController _confirmPwController = TextEditingController();
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
   ResetPwPage({super.key});
 
@@ -16,7 +18,7 @@ class ResetPwPage extends StatelessWidget {
         return Scaffold(
           backgroundColor: dark ? Colors.black : Colors.white,
           appBar: AppBar(
-            backgroundColor: const Color(0xFF00A8FF),
+            backgroundColor: Colors.blue,
             title: const Text(
               'MESSAGE',
               style: TextStyle(
@@ -59,13 +61,56 @@ class ResetPwPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 30),
                   ElevatedButton(
-                    onPressed: () {
-                      // Sau khi xử lý đổi mật khẩu xong (nếu có), quay lại Settings
-                      Navigator.pop(context); // Pop ra VerifyScreen
-                      Navigator.pop(
-                        context,
-                      ); // Pop từ VerifyScreen ra SettingScreen
+                    onPressed: () async {
+                      final newPassword = _pwController.text.trim();
+                      final confirmPassword = _confirmPwController.text.trim();
+
+                      if (newPassword.isEmpty || confirmPassword.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Vui lòng nhập đầy đủ thông tin'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (newPassword != confirmPassword) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Mật khẩu không khớp')),
+                        );
+                        return;
+                      }
+
+                      try {
+                        final user = _firebaseAuth.currentUser;
+                        if (user != null) {
+                          await user.updatePassword(newPassword);
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Đổi mật khẩu thành công'),
+                            ),
+                          );
+
+                          // Quay về màn hình cài đặt
+                          Navigator.pop(context); // Pop ra PasswordAuthPage
+                          Navigator.pop(context); // Pop ra Settings
+                        }
+                      } on FirebaseAuthException catch (e) {
+                        String message = 'Đổi mật khẩu thất bại';
+                        if (e.code == 'weak-password') {
+                          message = 'Mật khẩu quá yếu';
+                        } else if (e.code == 'requires-recent-login') {
+                          message =
+                              'Vui lòng xác thực lại trước khi đổi mật khẩu';
+                        }
+
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(message)));
+                      }
                     },
+
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2980B9),
                       padding: const EdgeInsets.symmetric(

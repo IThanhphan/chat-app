@@ -1,6 +1,8 @@
 import 'package:chat_app/components/custom_avatar.dart';
 import 'package:chat_app/pages/chat_page.dart';
+import 'package:chat_app/pages/group_chat_page.dart';
 import 'package:chat_app/services/auth/auth_service.dart';
+import 'package:chat_app/services/chat/chat_group_service.dart';
 import 'package:chat_app/services/chat/chat_service.dart';
 import 'package:chat_app/theme_manager.dart';
 import 'package:flutter/material.dart';
@@ -15,8 +17,28 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final ChatService _chatService = ChatService();
   final AuthService _authService = AuthService();
+  final ChatGroupService _chatGroupService = ChatGroupService();
+  List<Map<String, dynamic>> _allUsers = [];
+  final ValueNotifier<String> _searchQuery = ValueNotifier<String>('');
+  final ValueNotifier<bool> _isHomeSelected = ValueNotifier<bool>(true);
 
-  bool isHomeSelected = true;
+  List<Map<String, dynamic>> get filteredUsers {
+    if (_searchQuery.value.isEmpty) return _allUsers;
+
+    final query = _searchQuery.value.toLowerCase();
+
+    return _allUsers.where((user) {
+      final name = (user['username'] as String?)?.toLowerCase() ?? '';
+      return name.contains(query);
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _searchQuery.dispose();
+    _isHomeSelected.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +79,10 @@ class _HomePageState extends State<HomePage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(30),
                       ),
-                      child: const TextField(
+                      child: TextField(
+                        onChanged: (value) {
+                          _searchQuery.value = value;
+                        },
                         decoration: InputDecoration(
                           hintText: 'Tìm kiếm',
                           border: InputBorder.none,
@@ -71,10 +96,14 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             _horizontalUserList(),
-            _navigationTop(),
+            _navigationTop(dark),
             Expanded(
-              child:
-                  isHomeSelected ? _buildUserList(dark) : _buildGroupList(dark),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _isHomeSelected,
+                builder: (_, isHome, __) {
+                  return isHome ? _buildUserList(dark) : _buildGroupList(dark);
+                },
+              ),
             ),
           ],
         );
@@ -85,66 +114,80 @@ class _HomePageState extends State<HomePage> {
   Widget _horizontalUserList() {
     final currentUser = _authService.getCurrentUser();
 
-    return SizedBox(
-      height: 90,
-      child: StreamBuilder(
-        stream: _chatService.getUserStream(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Container();
-          }
+    return ValueListenableBuilder<String>(
+      valueListenable: _searchQuery,
+      builder: (context, query, _) {
+        return SizedBox(
+          height: 90,
+          child: StreamBuilder(
+            stream: _chatService.getUserStream(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return Container();
+              }
 
-          final users =
-              snapshot.data!
-                  .where((user) => user['email'] != currentUser?.email)
-                  .toList();
+              _allUsers =
+                  snapshot.data!
+                      .where((user) => user['email'] != currentUser?.email)
+                      .toList();
 
-          return ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            itemCount: users.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final user = users[index];
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (_) => ChatPage(
-                            receiverName: user['username'],
-                            receiverID: user['uid'],
-                            receiverAvatar: user['avatar'],
+              final filtered =
+                  _allUsers.where((user) {
+                    final name = user['username']?.toLowerCase() ?? '';
+                    return name.contains(query.toLowerCase());
+                  }).toList();
+
+              return ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                itemCount: filtered.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final user = filtered[index];
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => ChatPage(
+                                receiverName: user['username'],
+                                receiverID: user['uid'],
+                                receiverAvatar: user['avatar'],
+                              ),
+                        ),
+                      );
+                    },
+                    child: Column(
+                      children: [
+                        CustomAvatar(imageBase64: user['avatar'], radius: 25),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          width: 60,
+                          child: Text(
+                            user['username'],
+                            style: const TextStyle(fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                           ),
+                        ),
+                      ],
                     ),
                   );
                 },
-                child: Column(
-                  children: [
-                    CustomAvatar(imageBase64: user['avatar'], radius: 25),
-                    const SizedBox(height: 4),
-                    SizedBox(
-                      width: 60,
-                      child: Text(
-                        user['username'],
-                        style: const TextStyle(fontSize: 12),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _navigationTop() {
+  Widget _navigationTop(bool dark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
@@ -152,17 +195,14 @@ class _HomePageState extends State<HomePage> {
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () {
-                setState(() {
-                  isHomeSelected = true;
-                });
+                _isHomeSelected.value = true;
               },
               icon: const Icon(Icons.person, size: 18),
               label: const Text("Nhân viên", style: TextStyle(fontSize: 14)),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(25),
-                backgroundColor: Colors.white,
+                backgroundColor: dark ? Colors.grey.shade900 : Colors.white,
                 foregroundColor: Colors.blue,
-                elevation: isHomeSelected ? 1 : 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -173,17 +213,14 @@ class _HomePageState extends State<HomePage> {
           Expanded(
             child: ElevatedButton.icon(
               onPressed: () {
-                setState(() {
-                  isHomeSelected = false;
-                });
+                _isHomeSelected.value = false;
               },
               icon: const Icon(Icons.group, size: 18),
               label: const Text("Nhóm", style: TextStyle(fontSize: 14)),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(25),
-                backgroundColor: Colors.white,
+                backgroundColor: dark ? Colors.grey.shade900 : Colors.white,
                 foregroundColor: Colors.blue,
-                elevation: isHomeSelected ? 0 : 1,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -196,14 +233,66 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildGroupList(bool dark) {
-    return Center(
-      child: Text(
-        'Danh sách nhóm đang phát triển...',
-        style: TextStyle(
-          color: dark ? Colors.white70 : Colors.black54,
-          fontSize: 16,
-        ),
+    final currentUser = _authService.getCurrentUser();
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _chatGroupService.getGroupsWithLastMessagesSorted(
+        currentUser!.uid,
       ),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return const Text('Lỗi');
+        if (!snapshot.hasData) return const Text('Đang tải...');
+
+        final groups = snapshot.data!;
+
+        if (groups.isEmpty) {
+          return Center(
+            child: Text(
+              'Chưa có nhóm nào.',
+              style: TextStyle(
+                color: dark ? Colors.white70 : Colors.black54,
+                fontSize: 16,
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: EdgeInsets.zero,
+          itemCount: groups.length,
+          itemBuilder: (context, index) {
+            final group = groups[index];
+
+            return ListTile(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => GroupChatPage(
+                          groupID: group['id'],
+                          groupName: group['name'],
+                          groupAvatar: group['avatar'],
+                        ),
+                  ),
+                );
+              },
+              leading: CustomAvatar(imageBase64: group['avatar'], radius: 25),
+              title: Text(
+                group['name'] ?? '',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                group['lastMessage'] ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: Text(group['timeAgo'] ?? ''),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -259,7 +348,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
               title: Text(
-                user['username'],
+                user['username'] ?? '',
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
               ),

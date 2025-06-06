@@ -1,13 +1,66 @@
+import 'dart:convert';
 import 'package:chat_app/models/message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:tuple/tuple.dart';
+import 'package:http/http.dart' as http;
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  Future<Map<String, dynamic>> getUserById(String uid) async {
+    final doc =
+        await _firestore.collection('Users').doc(uid).get();
+    if (doc.exists) {
+      return doc.data()!;
+    } else {
+      throw Exception('Không tìm thấy người dùng');
+    }
+  }
+
+  Future<void> deleteUser(String uid) async {
+    try {
+      await _firestore.collection('Users').doc(uid).delete();
+    } catch (e) {
+      throw Exception('Không thể xóa người dùng: $e');
+    }
+  }
+
+  Future<void> _sendPushNotification(
+    String receiverID,
+    String message, {
+    bool isImage = false,
+  }) async {
+    final userDoc = await _firestore.collection('Users').doc(receiverID).get();
+
+    if (!userDoc.exists) return;
+
+    final token = userDoc.data()?['fcmToken'];
+    if (token == null) return;
+
+    const String serverKey = 'YOUR_SERVER_KEY_HERE';
+
+    await http.post(
+      Uri.parse('https://fcm.googleapis.com/fcm/send'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'key=$serverKey',
+      },
+      body: jsonEncode({
+        "to": token,
+        "notification": {
+          "title": "Tin nhắn mới từ ${userDoc['username']}",
+          "body": isImage ? "Đã gửi một hình ảnh" : message,
+          "sound": "default",
+        },
+        "priority": "high",
+        "data": {"click_action": "FLUTTER_NOTIFICATION_CLICK"},
+      }),
+    );
+  }
 
   Stream<List<Map<String, dynamic>>> getUserStream() {
     return _firestore.collection('Users').snapshots().map((snapshot) {
@@ -28,6 +81,8 @@ class ChatService {
     final String currentUserID = _auth.currentUser!.uid;
     final String currentUserEmail = _auth.currentUser!.email!;
     final Timestamp timestamp = Timestamp.now();
+
+    if (message == null || message.trim().isEmpty) return;
 
     // create a new message
     Message newMessage = Message(
@@ -55,6 +110,8 @@ class ChatService {
         .collection('last_messages')
         .doc(chatRoomID)
         .set(newMessage.toMap());
+
+    await _sendPushNotification(receiverID, message, isImage: isImage);
   }
 
   // get messages

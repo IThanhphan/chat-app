@@ -1,10 +1,12 @@
 import 'package:chat_app/components/input_text_field.dart';
 import 'package:chat_app/pages/settingChildrenPage/reset_pw_page.dart';
 import 'package:chat_app/theme_manager.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class PasswordAuthPage extends StatelessWidget {
   final TextEditingController _currentPwController = TextEditingController();
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
   PasswordAuthPage({super.key});
 
@@ -16,7 +18,7 @@ class PasswordAuthPage extends StatelessWidget {
         return Scaffold(
           backgroundColor: dark ? Colors.black : Colors.white,
           appBar: AppBar(
-            backgroundColor: const Color(0xFF00A8FF),
+            backgroundColor: Colors.blue,
             title: const Text(
               'MESSAGE',
               style: TextStyle(
@@ -51,14 +53,42 @@ class PasswordAuthPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ResetPwPage(),
-                        ),
-                      );
+                    onPressed: () async {
+                      final currentUser = _firebaseAuth.currentUser;
+                      final password = _currentPwController.text.trim();
+
+                      if (currentUser != null && currentUser.email != null) {
+                        final credential = EmailAuthProvider.credential(
+                          email: currentUser.email!,
+                          password: password,
+                        );
+
+                        try {
+                          await currentUser.reauthenticateWithCredential(
+                            credential,
+                          );
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ResetPwPage(),
+                            ),
+                          );
+                        } on FirebaseAuthException catch (e) {
+                          String message = 'Đã xảy ra lỗi';
+                          if (e.code == 'wrong-password') {
+                            message = 'Mật khẩu không đúng';
+                          } else if (e.code == 'user-mismatch') {
+                            message = 'Người dùng không khớp';
+                          }
+
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text(message)));
+                        }
+                      }
                     },
+
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2980B9),
                       padding: const EdgeInsets.symmetric(

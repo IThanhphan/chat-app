@@ -2,37 +2,36 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:chat_app/components/custom_avatar.dart';
 import 'package:chat_app/helper/utils/convert_image_to_base64.dart';
-import 'package:chat_app/pages/receiver_info_page.dart';
+import 'package:chat_app/services/chat/chat_group_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:chat_app/components/emoji_picker_sheet.dart';
 import 'package:chat_app/services/auth/auth_service.dart';
-import 'package:chat_app/services/chat/chat_service.dart';
 import 'package:chat_app/theme_manager.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class ChatPage extends StatefulWidget {
-  final String receiverName;
-  final String receiverID;
-  final String receiverAvatar;
+class GroupChatPage extends StatefulWidget {
+  final String groupID;
+  final String groupName;
+  final String groupAvatar;
 
-  const ChatPage({
+  const GroupChatPage({
     super.key,
-    required this.receiverName,
-    required this.receiverID,
-    required this.receiverAvatar,
+    required this.groupID,
+    required this.groupName,
+    required this.groupAvatar,
   });
 
   @override
-  State<ChatPage> createState() => _ChatPageState();
+  State<GroupChatPage> createState() => _GroupChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _GroupChatPageState extends State<GroupChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  final ChatService _chatService = ChatService();
+  final ChatGroupService _groupChatService = ChatGroupService();
   final AuthService _authService = AuthService();
 
   int _prevMessageCount = 0;
@@ -61,10 +60,9 @@ class _ChatPageState extends State<ChatPage> {
 
   void _sendMessage() async {
     if (_messageController.text.isNotEmpty) {
-      await _chatService.sendMessage(
-        widget.receiverID,
-        _messageController.text,
-        isImage: false,
+      await _groupChatService.sendGroupMessage(
+        groupID: widget.groupID,
+        message: _messageController.text,
       );
       _messageController.clear();
 
@@ -81,9 +79,9 @@ class _ChatPageState extends State<ChatPage> {
       final base64Image = await convertImageToBase64(imageFile);
 
       if (base64Image != null) {
-        await _chatService.sendMessage(
-          widget.receiverID,
-          base64Image,
+        await _groupChatService.sendGroupMessage(
+          groupID: widget.groupID,
+          message: base64Image,
           isImage: true,
         );
 
@@ -105,10 +103,7 @@ class _ChatPageState extends State<ChatPage> {
               children: [
                 Stack(
                   children: [
-                    CustomAvatar(
-                      imageBase64: widget.receiverAvatar,
-                      radius: 16,
-                    ),
+                    CustomAvatar(imageBase64: widget.groupAvatar, radius: 16),
                     Positioned(
                       bottom: 0,
                       right: 0,
@@ -128,7 +123,7 @@ class _ChatPageState extends State<ChatPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.receiverName,
+                      widget.groupName,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -152,16 +147,16 @@ class _ChatPageState extends State<ChatPage> {
               IconButton(
                 icon: Icon(Icons.info_outline, color: Colors.white),
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => ReceiverInfoPage(
-                            name: widget.receiverName,
-                            imageBase64: widget.receiverAvatar,
-                          ),
-                    ),
-                  );
+                  // Navigator.push(
+                  //   context,
+                  //   MaterialPageRoute(
+                  //     builder:
+                  //         (context) => ReceiverInfoPage(
+                  //           name: widget.receiverName,
+                  //           imageBase64: widget.receiverAvatar,
+                  //         ),
+                  //   ),
+                  // );
                   // xử lý mở info
                 },
               ),
@@ -179,9 +174,9 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _messageList(dark) {
-    String senderID = _authService.getCurrentUser()!.uid;
+    // String senderID = _authService.getCurrentUser()!.uid;
     return StreamBuilder(
-      stream: _chatService.getMessages(widget.receiverID, senderID),
+      stream: _groupChatService.getGroupMessages(widget.groupID),
       builder: (context, snapshot) {
         if (snapshot.hasError) return const Text('Error');
         if (snapshot.connectionState == ConnectionState.waiting)
@@ -265,7 +260,7 @@ class _ChatPageState extends State<ChatPage> {
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: CustomAvatar(
-                imageBase64: widget.receiverAvatar,
+                imageBase64: data['senderAvatar'],
                 radius: 14,
               ),
             ),
@@ -273,6 +268,13 @@ class _ChatPageState extends State<ChatPage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, top: 2),
+                  child: Text(
+                    data['senderName'] ?? '',
+                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  ),
+                ),
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -377,7 +379,11 @@ class _ChatPageState extends State<ChatPage> {
               color: dark ? Colors.white : Colors.grey,
             ),
             onPressed: () async {
-              await _chatService.sendMessage(widget.receiverID, "👍");
+              await _groupChatService.sendGroupMessage(
+                groupID: widget.groupID,
+                message: "👍",
+                isImage: false,
+              );
 
               // Scroll xuống cuối sau khi gửi
               _scrollToBottom();
@@ -403,11 +409,10 @@ class _ChatPageState extends State<ChatPage> {
                 leading: const Icon(Icons.undo),
                 title: const Text('Thu hồi tin nhắn'),
                 onTap: () async {
-                  String userID = _authService.getCurrentUser()!.uid;
-                  await _chatService.deleteMessage(
-                    userID,
-                    widget.receiverID,
-                    messageID,
+                  // String userID = _authService.getCurrentUser()!.uid;
+                  await _groupChatService.deleteGroupMessage(
+                    groupID: widget.groupID,
+                    messageID: messageID,
                   );
                   Navigator.pop(context);
                 },
