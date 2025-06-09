@@ -79,26 +79,13 @@ class AuthService {
     }
   }
 
-  Future<void> updateUserInfo({
-    String? username,
-    String? dob,
-    bool? gender,
-    String? phone,
-    String? address,
-  }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception("Người dùng chưa đăng nhập");
-
-    Map<String, dynamic> updateData = {};
-
-    if (username != null) updateData['username'] = username;
-    if (dob != null) updateData['dob'] = dob;
-    if (gender != null) updateData['gender'] = gender;
-    if (phone != null) updateData['phone'] = phone;
-    if (address != null) updateData['address'] = address;
-
-    if (updateData.isNotEmpty) {
-      await _firestore.collection('Users').doc(user.uid).update(updateData);
+  Future<void> updateUserInfo(Map<String, dynamic> data) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(userId)
+          .update(data);
     }
   }
 }

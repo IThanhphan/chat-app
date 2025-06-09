@@ -1,5 +1,6 @@
 import 'package:chat_app/components/custom_avatar.dart';
 import 'package:chat_app/components/custom_text_field.dart';
+import 'package:chat_app/helper/utils/calculate_age.dart';
 import 'package:chat_app/services/auth/auth_service.dart';
 import 'package:chat_app/theme_manager.dart';
 import 'package:flutter/material.dart';
@@ -25,18 +26,6 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
 
   bool _loading = true;
 
-  int _calculateAge(DateTime birthDate) {
-    final today = DateTime.now();
-    int age = today.year - birthDate.year;
-
-    if (today.month < birthDate.month ||
-        (today.month == birthDate.month && today.day < birthDate.day)) {
-      age--;
-    }
-
-    return age;
-  }
-
   Future<void> _loadUserInfo() async {
     final data = await _authService.getUserInfo();
 
@@ -58,13 +47,47 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                 int.parse(parts[1]),
                 int.parse(parts[0]),
               );
-              _ageController.text = _calculateAge(_selectedDate!).toString();
+              _ageController.text = calculateAge(_selectedDate!).toString();
             }
           } catch (_) {}
         }
 
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _updateUserInfo() async {
+    if (_selectedDate == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Vui lòng chọn ngày sinh")));
+      return;
+    }
+
+    try {
+      setState(() => _loading = true);
+
+      final updatedData = {
+        'username': _usernameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'address': _addressController.text.trim(),
+        'gender': _isMale,
+        'dob':
+            "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}",
+      };
+
+      await _authService.updateUserInfo(updatedData);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Cập nhật thành công")));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Cập nhật thất bại: $e")));
+    } finally {
+      setState(() => _loading = false);
     }
   }
 
@@ -221,11 +244,7 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                 ),
                 const SizedBox(height: 30),
                 ElevatedButton(
-                  onPressed: () {
-                    // Xử lý cập nhật thông tin tại đây
-                    print("Tên tài khoản: ${_usernameController.text}");
-                    print("Email: ${_emailController.text}");
-                  },
+                  onPressed: _updateUserInfo,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2980B9),
                     padding: const EdgeInsets.symmetric(

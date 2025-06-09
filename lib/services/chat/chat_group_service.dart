@@ -147,6 +147,72 @@ class ChatGroupService {
     }
   }
 
+  // Trả về Stream danh sách thông tin thành viên (uid, email, username, avatar, ...)
+  Stream<List<Map<String, dynamic>>> getAllMembers(String groupID) {
+    final groupDocRef = _firestore.collection('groups').doc(groupID);
+
+    return groupDocRef.snapshots().asyncMap((groupSnapshot) async {
+      if (!groupSnapshot.exists) return [];
+
+      final data = groupSnapshot.data();
+      final memberIDs =
+          (data?['members'] as List?)?.map((e) => e.toString()).toList() ?? [];
+
+      final memberDocs = await Future.wait(
+        memberIDs.map((uid) => _firestore.collection('Users').doc(uid).get()),
+      );
+
+      return memberDocs.where((doc) => doc.exists && doc.data() != null).map((
+        doc,
+      ) {
+        final userData = doc.data()!;
+        return {'uid': doc.id, ...userData};
+      }).toList();
+    });
+  }
+
+  // Trả về toàn bộ người dùng (có thể lọc phía UI)
+  Future<List<Map<String, dynamic>>> getAllUsers() async {
+    final usersSnap = await _firestore.collection('Users').get();
+    return usersSnap.docs.map((doc) {
+      final data = doc.data();
+      return {
+        'uid': doc.id,
+        'username': data['username'] ?? 'Không tên',
+        'email': data['email'] ?? '',
+        'avatar': data['avatar'] ?? '',
+      };
+    }).toList();
+  }
+
+  Future<void> addMemberToGroup(String groupID, String userID) async {
+    final groupRef = _firestore.collection('groups').doc(groupID);
+    await groupRef.update({
+      'members': FieldValue.arrayUnion([userID]),
+    });
+  }
+
+  Future<void> removeMemberFromGroup(String groupID, String userID) async {
+    final groupRef = _firestore.collection('groups').doc(groupID);
+    await groupRef.update({
+      'members': FieldValue.arrayRemove([userID]),
+    });
+  }
+
+  Future<void> leaveGroup(String groupId, String userId) async {
+    final groupRef = _firestore.collection('groups').doc(groupId);
+
+    await groupRef.update({
+      'members': FieldValue.arrayRemove([userId]),
+    });
+  }
+
+  Future<void> updateGroupAvatar(String groupId, String base64Avatar) async {
+    await _firestore.collection('groups').doc(groupId).update({
+      'avatar': base64Avatar,
+    });
+  }
+
   // Lấy danh sách nhóm người dùng đang tham gia kèm tin nhắn cuối
   Stream<List<Map<String, dynamic>>> getGroupsWithLastMessagesSorted(
     String currentUID,

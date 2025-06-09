@@ -13,16 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class ChatPage extends StatefulWidget {
-  final String receiverName;
-  final String receiverID;
-  final String receiverAvatar;
+  final Map<String, dynamic> receiver;
 
-  const ChatPage({
-    super.key,
-    required this.receiverName,
-    required this.receiverID,
-    required this.receiverAvatar,
-  });
+  const ChatPage({required this.receiver, super.key});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -62,7 +55,7 @@ class _ChatPageState extends State<ChatPage> {
   void _sendMessage() async {
     if (_messageController.text.isNotEmpty) {
       await _chatService.sendMessage(
-        widget.receiverID,
+        widget.receiver['uid'],
         _messageController.text,
         isImage: false,
       );
@@ -82,7 +75,7 @@ class _ChatPageState extends State<ChatPage> {
 
       if (base64Image != null) {
         await _chatService.sendMessage(
-          widget.receiverID,
+          widget.receiver['uid'],
           base64Image,
           isImage: true,
         );
@@ -106,7 +99,7 @@ class _ChatPageState extends State<ChatPage> {
                 Stack(
                   children: [
                     CustomAvatar(
-                      imageBase64: widget.receiverAvatar,
+                      imageBase64: widget.receiver['avatar'],
                       radius: 16,
                     ),
                     Positioned(
@@ -128,7 +121,7 @@ class _ChatPageState extends State<ChatPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.receiverName,
+                      widget.receiver['username'],
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -156,10 +149,8 @@ class _ChatPageState extends State<ChatPage> {
                     context,
                     MaterialPageRoute(
                       builder:
-                          (context) => ReceiverInfoPage(
-                            name: widget.receiverName,
-                            imageBase64: widget.receiverAvatar,
-                          ),
+                          (context) =>
+                              ReceiverInfoPage(receiver: widget.receiver),
                     ),
                   );
                   // xử lý mở info
@@ -181,7 +172,7 @@ class _ChatPageState extends State<ChatPage> {
   Widget _messageList(dark) {
     String senderID = _authService.getCurrentUser()!.uid;
     return StreamBuilder(
-      stream: _chatService.getMessages(widget.receiverID, senderID),
+      stream: _chatService.getMessages(widget.receiver['uid'], senderID),
       builder: (context, snapshot) {
         if (snapshot.hasError) return const Text('Error');
         if (snapshot.connectionState == ConnectionState.waiting)
@@ -265,7 +256,7 @@ class _ChatPageState extends State<ChatPage> {
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: CustomAvatar(
-                imageBase64: widget.receiverAvatar,
+                imageBase64: widget.receiver['avatar'],
                 radius: 14,
               ),
             ),
@@ -377,7 +368,7 @@ class _ChatPageState extends State<ChatPage> {
               color: dark ? Colors.white : Colors.grey,
             ),
             onPressed: () async {
-              await _chatService.sendMessage(widget.receiverID, "👍");
+              await _chatService.sendMessage(widget.receiver['uid'], "👍");
 
               // Scroll xuống cuối sau khi gửi
               _scrollToBottom();
@@ -406,7 +397,7 @@ class _ChatPageState extends State<ChatPage> {
                   String userID = _authService.getCurrentUser()!.uid;
                   await _chatService.deleteMessage(
                     userID,
-                    widget.receiverID,
+                    widget.receiver['uid'],
                     messageID,
                   );
                   Navigator.pop(context);

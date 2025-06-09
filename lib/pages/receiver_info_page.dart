@@ -1,16 +1,30 @@
 import 'package:chat_app/components/custom_avatar.dart';
+import 'package:chat_app/helper/utils/calculate_age.dart';
 import 'package:chat_app/theme_manager.dart';
 import 'package:flutter/material.dart';
 
 class ReceiverInfoPage extends StatelessWidget {
-  final String name;
-  final String imageBase64;
+  final Map<String, dynamic> receiver;
 
-  const ReceiverInfoPage({
-    super.key,
-    required this.name,
-    required this.imageBase64,
-  });
+  const ReceiverInfoPage({super.key, required this.receiver});
+
+  String printAge() {
+    String age = '0';
+    if (receiver['dob'] != null && receiver['dob'] is String) {
+      try {
+        final parts = receiver['dob'].split('/');
+        if (parts.length == 3) {
+          DateTime date = DateTime(
+            int.parse(parts[2]),
+            int.parse(parts[1]),
+            int.parse(parts[0]),
+          );
+          age = calculateAge(date).toString();
+        }
+      } catch (_) {}
+    }
+    return age;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +47,7 @@ class ReceiverInfoPage extends StatelessWidget {
           children: [
             Stack(
               children: [
-                CustomAvatar(imageBase64: imageBase64, radius: 50),
+                CustomAvatar(imageBase64: receiver['avatar'], radius: 50),
                 Positioned(
                   bottom: 5,
                   right: 10,
@@ -51,7 +65,7 @@ class ReceiverInfoPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              name,
+              receiver['username'],
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -67,11 +81,22 @@ class ReceiverInfoPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 30),
-            _buildInfoRow("Họ tên", name, dark),
-            _buildInfoRow("Ngày sinh", "12/04/2002", dark),
-            _buildInfoRow("Số điện thoại", "0938 123 456", dark),
-            _buildInfoRow("Email", "quang@example.com", dark),
-            _buildInfoRow("Giới tính", "Nam", dark),
+            _buildInfoRow("Họ tên", receiver['username'] ?? '', dark),
+            _buildInfoRow("Tuổi", printAge(), dark),
+            _buildInfoRow("Ngày sinh", receiver['dob'] ?? '', dark),
+            _buildInfoRow(
+              "Số điện thoại",
+              receiver['phone'] ?? 'Chưa cập nhật',
+              dark,
+            ),
+            _buildInfoRow(
+              "Địa chỉ",
+              receiver['address'] ?? 'Chưa cập nhật',
+              dark,
+            ),
+            _buildInfoRow("Email", receiver['email'] ?? '', dark),
+            _buildInfoRow("Giới tính", receiver['gender'] ? 'Nam' : 'Nữ', dark),
+
             const Spacer(),
             ElevatedButton.icon(
               onPressed: () => Navigator.pop(context),

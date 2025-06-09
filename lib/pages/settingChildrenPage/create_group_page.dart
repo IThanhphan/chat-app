@@ -66,6 +66,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       'avatar': base64Image,
       'members': selectedUserIds,
       'createdAt': Timestamp.now(),
+      'creator': currentUID,
     });
 
     // Thêm id của nhóm vào chính document vừa tạo (giúp truy vấn dễ hơn)

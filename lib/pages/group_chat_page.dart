@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:chat_app/components/custom_avatar.dart';
 import 'package:chat_app/helper/utils/convert_image_to_base64.dart';
+import 'package:chat_app/pages/group_info_page.dart';
 import 'package:chat_app/services/chat/chat_group_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:chat_app/components/emoji_picker_sheet.dart';
@@ -15,12 +16,14 @@ class GroupChatPage extends StatefulWidget {
   final String groupID;
   final String groupName;
   final String groupAvatar;
+  final String groupCreator;
 
   const GroupChatPage({
     super.key,
     required this.groupID,
     required this.groupName,
     required this.groupAvatar,
+    required this.groupCreator
   });
 
   @override
@@ -147,17 +150,18 @@ class _GroupChatPageState extends State<GroupChatPage> {
               IconButton(
                 icon: Icon(Icons.info_outline, color: Colors.white),
                 onPressed: () {
-                  // Navigator.push(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //     builder:
-                  //         (context) => ReceiverInfoPage(
-                  //           name: widget.receiverName,
-                  //           imageBase64: widget.receiverAvatar,
-                  //         ),
-                  //   ),
-                  // );
-                  // xử lý mở info
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => GroupInfoPage(
+                            groupID: widget.groupID,
+                            groupName: widget.groupName,
+                            groupAvatar: widget.groupAvatar,
+                            groupCreator: widget.groupCreator,
+                          ),
+                    ),
+                  );
                 },
               ),
             ],

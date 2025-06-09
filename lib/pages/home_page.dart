@@ -152,12 +152,7 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder:
-                              (_) => ChatPage(
-                                receiverName: user['username'],
-                                receiverID: user['uid'],
-                                receiverAvatar: user['avatar'],
-                              ),
+                          builder: (_) => ChatPage(receiver: user),
                         ),
                       );
                     },
@@ -273,6 +268,7 @@ class _HomePageState extends State<HomePage> {
                           groupID: group['id'],
                           groupName: group['name'],
                           groupAvatar: group['avatar'],
+                          groupCreator: group['creator'],
                         ),
                   ),
                 );
@@ -316,14 +312,7 @@ class _HomePageState extends State<HomePage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder:
-                        (_) => ChatPage(
-                          receiverName: user['username'],
-                          receiverID: user['uid'],
-                          receiverAvatar: user['avatar'],
-                        ),
-                  ),
+                  MaterialPageRoute(builder: (_) => ChatPage(receiver: user)),
                 );
               },
               leading: Stack(

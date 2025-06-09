@@ -30,7 +30,7 @@ class _LoginPageState extends State<LoginPage> {
         _pwController.text,
       );
       FCMTokenRepository.refreshAndSaveToken();
-
+      if (!mounted) return;
       showCustomFlushbar(
         context: context,
         text: 'Bạn đã đăng nhập thành công!',
@@ -38,6 +38,7 @@ class _LoginPageState extends State<LoginPage> {
         icon: Icons.check_circle,
       );
     } catch (e) {
+      if (!mounted) return;
       showCustomFlushbar(
         context: context,
         text: 'Sai mật khẩu hoặc email',
@@ -45,7 +46,9 @@ class _LoginPageState extends State<LoginPage> {
         icon: Icons.error,
       );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
