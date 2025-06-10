@@ -165,24 +165,24 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 16),
                   // Quên mật khẩu
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PasswordAuthPage(),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      'Quên mật khẩu ?',
-                      style: TextStyle(
-                        color:
-                            dark ? Colors.blue[300] : const Color(0xFF2980B9),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+                  // TextButton(
+                  //   onPressed: () {
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (context) => PasswordAuthPage(),
+                  //       ),
+                  //     );
+                  //   },
+                  //   child: Text(
+                  //     'Quên mật khẩu ?',
+                  //     style: TextStyle(
+                  //       color:
+                  //           dark ? Colors.blue[300] : const Color(0xFF2980B9),
+                  //       fontWeight: FontWeight.w500,
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
             ),
