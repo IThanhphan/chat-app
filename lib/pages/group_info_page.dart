@@ -73,7 +73,12 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
       builder:
           (context) => AlertDialog(
             title: const Text('Xác nhận rời nhóm'),
-            content: const Text('Bạn có chắc muốn rời khỏi nhóm này không?'),
+            content:
+                widget.groupCreator == currentUser.uid
+                    ? const Text(
+                      'Bạn là người tạo nhóm. Nếu bạn rời đi, nhóm sẽ bị xóa. Bạn chắc chứ?',
+                    )
+                    : const Text('Bạn có chắc muốn rời khỏi nhóm này không?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -81,20 +86,33 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  'Rời nhóm',
-                  style: TextStyle(color: Colors.red),
+                child: Text(
+                  widget.groupCreator == currentUser.uid
+                      ? 'Xóa nhóm'
+                      : 'Rời nhóm',
+                  style: const TextStyle(color: Colors.red),
                 ),
               ),
             ],
           ),
     );
 
-    if (confirm == true) {
+    if (confirm != true) return;
+
+    if (widget.groupCreator == currentUser.uid) {
+      await _groupChatService.deleteGroup(widget.groupID);
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Bạn đã xóa nhóm')));
+    } else {
       await _groupChatService.leaveGroup(widget.groupID, currentUser.uid);
 
       if (!mounted) return;
-
       Navigator.pop(context);
       Navigator.pop(context);
 

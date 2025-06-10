@@ -213,6 +213,34 @@ class ChatGroupService {
     });
   }
 
+  Future<void> deleteGroup(String groupId) async {
+    final groupRef = _firestore.collection('groups').doc(groupId);
+    final messagesRef = _firestore
+        .collection('group_chats')
+        .doc(groupId)
+        .collection('messages');
+    final lastMessageRef = _firestore
+        .collection('group_last_messages')
+        .doc(groupId);
+
+    final batch = _firestore.batch();
+
+    // Xóa tài liệu nhóm chính
+    batch.delete(groupRef);
+
+    // Xóa last message
+    batch.delete(lastMessageRef);
+
+    // Lấy toàn bộ tin nhắn để xóa (không thể dùng batch với > 500 items, xử lý riêng nếu nhiều)
+    final messagesSnapshot = await messagesRef.get();
+    for (var doc in messagesSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // Thực thi xóa
+    await batch.commit();
+  }
+
   // Lấy danh sách nhóm người dùng đang tham gia kèm tin nhắn cuối
   Stream<List<Map<String, dynamic>>> getGroupsWithLastMessagesSorted(
     String currentUID,

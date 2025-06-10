@@ -5,7 +5,11 @@ class CustomAvatar extends StatelessWidget {
   final String imageBase64;
   final double radius;
 
-  const CustomAvatar({super.key, required this.imageBase64, required this.radius});
+  const CustomAvatar({
+    super.key,
+    required this.imageBase64,
+    required this.radius,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +18,7 @@ class CustomAvatar extends StatelessWidget {
       backgroundImage:
           imageBase64 != ''
               ? MemoryImage(base64Decode(imageBase64))
-              : const AssetImage('assets/avatar.png') as ImageProvider,
+              : const AssetImage('assets/logo.png') as ImageProvider,
     );
   }
 }

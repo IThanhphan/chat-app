@@ -25,6 +25,12 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final AuthService _auth = AuthService();
   bool isLoading = false;
+  final ValueNotifier<String?> avatarNotifier = ValueNotifier<String?>(null);
+
+  Future<void> _loadInitialAvatar() async {
+    final userInfo = await _auth.getUserInfo();
+    avatarNotifier.value = userInfo?['avatar'];
+  }
 
   // void logout(BuildContext context) {
   void logout(BuildContext context) async {
@@ -63,6 +69,7 @@ class _SettingsPageState extends State<SettingsPage> {
       String? base64Image = await convertImageToBase64(imageFile);
       if (base64Image != null) {
         await _auth.updateAvatar(base64Image);
+        avatarNotifier.value = base64Image;
         Navigator.pop(context);
 
         showCustomFlushbar(
@@ -73,6 +80,18 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       }
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialAvatar();
+  }
+
+  @override
+  void dispose() {
+    avatarNotifier.dispose();
+    super.dispose();
   }
 
   @override
@@ -96,21 +115,16 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              FutureBuilder<Map<String, dynamic>?>(
-                future: _auth.getUserInfo(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircleAvatar(radius: 50); // loading avatar
-                  } else {
-                    final avatarBase64 = snapshot.data?['avatar'];
-                    return GestureDetector(
-                      onTap: () => _showAvatarOptions(context),
-                      child: CustomAvatar(
-                        imageBase64: avatarBase64,
-                        radius: 50,
-                      ),
-                    );
-                  }
+              ValueListenableBuilder<String?>(
+                valueListenable: avatarNotifier,
+                builder: (context, avatarBase64, _) {
+                  return GestureDetector(
+                    onTap: () => _showAvatarOptions(context),
+                    child: CustomAvatar(
+                      imageBase64: avatarBase64 ?? '',
+                      radius: 50,
+                    ),
+                  );
                 },
               ),
 
@@ -306,6 +320,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     );
                   }
                   await _auth.updateAvatar(base64Image);
+                  avatarNotifier.value = base64Image;
                   Navigator.pop(context);
                   showCustomFlushbar(
                     context: context,
