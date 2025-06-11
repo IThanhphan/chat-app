@@ -1,7 +1,7 @@
 import 'package:chat_app/components/input_text_field.dart';
 import 'package:chat_app/helper/utils/show_custom_flushbar.dart';
 import 'package:chat_app/notifications/fcm_token_repository.dart';
-import 'package:chat_app/pages/settingChildrenPage/password_auth_page.dart';
+// import 'package:chat_app/pages/settingChildrenPage/password_auth_page.dart';
 import 'package:chat_app/pages/register_page.dart';
 import 'package:chat_app/services/auth/auth_service.dart';
 import 'package:chat_app/theme_manager.dart';

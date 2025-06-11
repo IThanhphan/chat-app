@@ -25,11 +25,19 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final AuthService _auth = AuthService();
   bool isLoading = false;
+  bool isAdmin = false;
   final ValueNotifier<String?> avatarNotifier = ValueNotifier<String?>(null);
 
   Future<void> _loadInitialAvatar() async {
     final userInfo = await _auth.getUserInfo();
     avatarNotifier.value = userInfo?['avatar'];
+  }
+
+  Future<void> _checkIfAdmin() async {
+    final userData = await _auth.getUserInfo();
+    setState(() {
+      isAdmin = userData?['admin'] == true;
+    });
   }
 
   // void logout(BuildContext context) {
@@ -86,6 +94,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _loadInitialAvatar();
+    _checkIfAdmin();
   }
 
   @override
@@ -177,33 +186,35 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
 
-              buildMenuItem(
-                Icons.group_add,
-                'Tạo nhóm',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreateGroupPage(),
-                    ),
-                  );
-                },
-              ),
+              if (isAdmin)
+                buildMenuItem(
+                  Icons.group_add,
+                  'Tạo nhóm',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CreateGroupPage(),
+                      ),
+                    );
+                  },
+                ),
 
-              buildMenuItem(
-                Icons.person_remove,
-                'Xóa nhân viên',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const DeleteEmployeePage(),
-                    ),
-                  );
-                },
-              ),
+              if (isAdmin)
+                buildMenuItem(
+                  Icons.person_remove,
+                  'Xóa nhân viên',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DeleteEmployeePage(),
+                      ),
+                    );
+                  },
+                ),
 
-              const SizedBox(height: 70),
+              SizedBox(height: isAdmin ? 80 : 190),
               ElevatedButton(
                 onPressed: isLoading ? null : () => logout(context),
                 style: ElevatedButton.styleFrom(
