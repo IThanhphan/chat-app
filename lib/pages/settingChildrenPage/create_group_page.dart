@@ -222,10 +222,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
                     return ListTile(
                       leading: CustomAvatar(
-                        imageBase64: user['avatar'],
+                        imageBase64: user['avatar'] ?? "",
                         radius: 25,
                       ),
-                      title: Text(user['username']),
+                      title: Text(user['username'] ?? ""),
                       trailing: GestureDetector(
                         onTap: () {
                           setItemState(() {

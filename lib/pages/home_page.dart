@@ -158,12 +158,12 @@ class _HomePageState extends State<HomePage> {
                     },
                     child: Column(
                       children: [
-                        CustomAvatar(imageBase64: user['avatar'], radius: 25),
+                        CustomAvatar(imageBase64: user['avatar'] ?? "", radius: 25),
                         const SizedBox(height: 4),
                         SizedBox(
                           width: 60,
                           child: Text(
-                            user['username'],
+                            user['username'] ?? "",
                             style: const TextStyle(fontSize: 12),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -317,7 +317,7 @@ class _HomePageState extends State<HomePage> {
               },
               leading: Stack(
                 children: [
-                  CustomAvatar(imageBase64: user['avatar'], radius: 25),
+                  CustomAvatar(imageBase64: user['avatar'] ?? "", radius: 25),
                   Positioned(
                     bottom: 0,
                     right: 0,

@@ -196,7 +196,7 @@ class _DeleteEmployeePageState extends State<DeleteEmployeePage> {
 
                     return ListTile(
                       leading: CustomAvatar(
-                        imageBase64: user['avatar'],
+                        imageBase64: user['avatar'] ?? "",
                         radius: 25,
                       ),
                       title: Text(user['username']),

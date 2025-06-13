@@ -12,8 +12,7 @@ class ChatService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<Map<String, dynamic>> getUserById(String uid) async {
-    final doc =
-        await _firestore.collection('Users').doc(uid).get();
+    final doc = await _firestore.collection('Users').doc(uid).get();
     if (doc.exists) {
       return doc.data()!;
     } else {
@@ -24,6 +23,33 @@ class ChatService {
   Future<void> deleteUser(String uid) async {
     try {
       await _firestore.collection('Users').doc(uid).delete();
+
+      // Xóa last_messages liên quan
+      final lastMessages = await _firestore.collection('last_messages').get();
+      for (final doc in lastMessages.docs) {
+        if (doc.id.contains(uid)) {
+          await _firestore.collection('last_messages').doc(doc.id).delete();
+        }
+      }
+
+      // Xóa toàn bộ chat_rooms và messages liên quan
+      final chatRooms = await _firestore.collection('chat_rooms').get();
+      for (final doc in chatRooms.docs) { 
+        if (doc.id.contains(uid)) {
+          final messages =
+              await _firestore
+                  .collection('chat_rooms')
+                  .doc(doc.id)
+                  .collection('messages')
+                  .get();
+
+          for (final message in messages.docs) {
+            await message.reference.delete();
+          }
+
+          await _firestore.collection('chat_rooms').doc(doc.id).delete();
+        }
+      }
     } catch (e) {
       throw Exception('Không thể xóa người dùng: $e');
     }

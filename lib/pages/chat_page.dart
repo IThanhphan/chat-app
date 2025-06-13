@@ -99,7 +99,7 @@ class _ChatPageState extends State<ChatPage> {
                 Stack(
                   children: [
                     CustomAvatar(
-                      imageBase64: widget.receiver['avatar'],
+                      imageBase64: widget.receiver['avatar'] ?? "",
                       radius: 16,
                     ),
                     Positioned(
@@ -121,7 +121,7 @@ class _ChatPageState extends State<ChatPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.receiver['username'],
+                      widget.receiver['username'] ?? "",
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -256,7 +256,7 @@ class _ChatPageState extends State<ChatPage> {
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: CustomAvatar(
-                imageBase64: widget.receiver['avatar'],
+                imageBase64: widget.receiver['avatar'] ?? "",
                 radius: 14,
               ),
             ),
